@@ -22,7 +22,7 @@ def get_config():
     parser.add_argument(
         "--source_dataset_dir",
         type=str,
-        default="/datasets/gazefollow_extended",
+        default="D:/Datasets/gazefollow_extended",
         help="directory where the source dataset is located",
     )
     parser.add_argument(
@@ -34,7 +34,7 @@ def get_config():
     parser.add_argument(
         "--target_dataset_dir",
         type=str,
-        default="/datasets/gazefollow_extended",
+        default="D:/Datasets/gazefollow_extended",
         help="directory where the target dataset is located",
     )
     parser.add_argument(
@@ -47,7 +47,7 @@ def get_config():
 
     # Model args
     parser.add_argument("--init_weights", type=str, help="initial weights")
-    parser.add_argument("--eval_weights", type=str, help="If set, performs evaluation only")
+    parser.add_argument("--eval_weights", type=str, default="C:/Users/isxzl/OneDrive/Code/multimodal-across-domains-gaze-target-detection/pretrained/best_gazefollow_gazefollow.pth", help="If set, performs evaluation only")
 
     # Training args
     parser.add_argument("--lr", type=float, default=2.5e-4, help="learning rate")

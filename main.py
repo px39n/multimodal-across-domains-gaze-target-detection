@@ -485,7 +485,7 @@ def evaluate(config, model, device, loader):
             n_jobs = max(1, min(multiprocessing.cpu_count(), 8, config.batch_size))
             metrics = Parallel(n_jobs=n_jobs)(
                 delayed(evaluate_one_item)(
-                    gaze_heatmap_pred[b_i], eye_coords[b_i], gaze_coords[b_i], img_size[b_i], output_size
+                    gaze_heatmap_pred.numpy()[b_i], eye_coords[b_i], gaze_coords[b_i], img_size[b_i], output_size
                 )
                 for b_i in range(len(gaze_coords))
             )
