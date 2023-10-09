@@ -35,29 +35,10 @@ def get_loader(name: str, root_dir: str, input_size=224, output_size=64, batch_s
 
 
 def get_dataset(config):
-    source_loader = get_loader(
-        config.source_dataset,
-        config.source_dataset_dir,
-        input_size=config.input_size,
-        output_size=config.output_size,
-        batch_size=config.batch_size,
-        num_workers=config.num_workers,
-        is_train=True,
-    )
-
-    target_loader = get_loader(
-        config.target_dataset,
-        config.target_dataset_dir,
-        input_size=config.input_size,
-        output_size=config.output_size,
-        batch_size=config.batch_size,
-        num_workers=config.num_workers,
-        is_train=True,
-    )
 
     target_test_loader = get_loader(
         config.target_dataset,
-        config.target_dataset_dir,
+        config.dataset_dir,
         input_size=config.input_size,
         output_size=config.output_size,
         batch_size=config.batch_size,
@@ -65,4 +46,4 @@ def get_dataset(config):
         is_train=False,
     )
 
-    return source_loader, target_loader, target_test_loader
+    return 1, 1, target_test_loader

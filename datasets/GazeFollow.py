@@ -113,7 +113,7 @@ class GazeFollow(Dataset):
         face = img.crop((int(x_min), int(y_min), int(x_max), int(y_max)))
 
         # Load depth image
-        depth_path = path.replace("train", "depth").replace("test2", "depth2").replace("jpg","png")
+        depth_path = path.replace("image_original", "depth_intermediate").replace("test2", "depth2").replace("jpg","png")
         depth = Image.open(os.path.join(self.data_dir, depth_path))
         depth = depth.convert("L")
 
