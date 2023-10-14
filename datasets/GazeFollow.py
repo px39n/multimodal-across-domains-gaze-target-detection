@@ -31,15 +31,6 @@ class GazeFollow(Dataset):
         self.image_list="ALL"
         column_names = [
             "path",
-            "idx",
-            "body_bbox_x",
-            "body_bbox_y",
-            "body_bbox_w",
-            "body_bbox_h",
-            "eye_x",
-            "eye_y",
-            "gaze_x",
-            "gaze_y",
             "bbox_x_min",
             "bbox_y_min",
             "bbox_x_max",
@@ -49,8 +40,8 @@ class GazeFollow(Dataset):
         df = pd.read_csv(labels_path, sep=",", names=column_names, usecols=column_names, index_col=False)
 
         df = df[
-            ["path", "eye_x", "eye_y", "gaze_x", "gaze_y", "bbox_x_min", "bbox_y_min", "bbox_x_max", "bbox_y_max"]
-        ].groupby(["path", "eye_x"])
+            ["path", "bbox_x_min", "bbox_y_min", "bbox_x_max", "bbox_y_max"]
+        ].groupby(["path"])
 
         if self.image_list!="ALL":
             # Filtering the DataFrame based on the image_list.
@@ -69,32 +60,13 @@ class GazeFollow(Dataset):
         return self.length
 
     def __get_test_item__(self, index):
-        eye_coords = []
-        gaze_coords = []
-        gaze_inside = []
         for _, row in self.X.get_group(self.keys[index]).iterrows():
             path = row["path"]
             x_min = row["bbox_x_min"]
             y_min = row["bbox_y_min"]
             x_max = row["bbox_x_max"]
             y_max = row["bbox_y_max"]
-            gaze_x = row["gaze_x"]
-            gaze_y = row["gaze_y"]
-            eye_x = row["eye_x"]
-            eye_y = row["eye_y"]
             # All ground truth gaze are stacked up
-            eye_coords.append([eye_x, eye_y])
-            gaze_coords.append([gaze_x, gaze_y])
-            gaze_inside.append(True)
-
-        for _ in range(len(gaze_coords), 20):
-            # Pad dummy gaze to match size for batch processing
-            eye_coords.append([-1, -1])
-            gaze_coords.append([-1, -1])
-            gaze_inside.append(False)
-        eye_coords = torch.FloatTensor(eye_coords)
-        gaze_coords = torch.FloatTensor(gaze_coords)
-        gaze_inside = torch.IntTensor(gaze_inside)
 
         # Expand face bbox a bit
         x_min -= self.head_bbox_overflow_coeff * abs(x_max - x_min)
@@ -126,28 +98,11 @@ class GazeFollow(Dataset):
         if self.depth_transform is not None:
             depth = self.depth_transform(depth)
 
-        # Generate the heat map used for deconv prediction
-        gaze_heatmap = torch.zeros(self.output_size, self.output_size)
-        num_valid = 0
-        for gaze_x, gaze_y in gaze_coords:
-            if gaze_x == -1:
-                continue
-
-            num_valid += 1
-            gaze_heatmap = get_label_map(
-                gaze_heatmap, [gaze_x * self.output_size, gaze_y * self.output_size], 3, pdf="Gaussian"
-            )
-        gaze_heatmap /= num_valid
-
         return (
             img,
             depth,
             face,
             head,
-            gaze_heatmap,
-            eye_coords,
-            gaze_coords,
-            gaze_inside[0],
             torch.IntTensor([width, height]),
             path,
         )
