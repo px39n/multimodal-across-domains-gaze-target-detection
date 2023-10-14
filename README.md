@@ -16,85 +16,24 @@ nano .env
 Due to the complexity of the network use a recent NVidia GPU with at least 6GB of memory available and CUDA 11.3+ installed.
 Also, we suggest running everything on a Linux-based OS, preferably Ubuntu 20.04.
 
-### Datasets
-This network was trained and evaluated on three popular datasets: GazeFollow (extended), VideoAttentionTarget, and GOO (real).
-We further extended each sample with depth data. You can download the preprocessed datasets with depth [here](https://www.dropbox.com/sh/8o3h1gp6ufgotr3/AACWT7DnXRG8NlzxvqNe3UB5a?dl=1).
+### Demo
+ 
+1. Video properties such as frame count and FPS are extracted using OpenCV.
+2. Based on the original video's FPS and the desired `sampling_fps`, the function calculates the frequency at which frames should be extracted.
+3. The frames are then saved to a directory which has the same name as the video file (minus its extension) and is located in the same parent directory as the video.
+4. Each saved frame is processed using either the `predict_image_with_annotation` or `predict_image_without_annotation` function, depending on the value of the `annotated` flag.
+5. After processing all frames, the face has been detected autmatically, and annotation has been saved in style of gazefollow. The depth image has been process automatically.
+6. Function compiles them back into a video file and saves it to the output directory.
 
-## Train and evaluate
-Before training, download the pretraining weights [here](https://www.dropbox.com/s/l3xo4h7nghef3m5/init_weights.pt?dl=0).
-The script allows to train and evaluate different datasets.
-To train and evaluate on the same dataset sets the `source_dataset` and `target_dataset` to the same value.
-To evaluate only, set the ‵eval_weights‵ variable. We also release our trained checkpoints for [GazeFollow](https://www.dropbox.com/s/ndsp3g5zzx290nh/best_gazefollow_gazefollow.pth?dl=1) and [VideoAttentionTarget](https://www.dropbox.com/scl/fi/mn1pexehcywfop5xy4r63/best_videoattention_videoattention.pth?rlkey=7tw1ynt0a9rmrd7o3bqt6tbt0&dl=1).
+**Output**:
+The function will save the processed video in the same parent directory as the original video. The output video's name will be appended with "_output.avi".
 
-```bash
-python main.py [-h] [--tag TAG] [--device {cpu,cuda,mps}] [--input_size INPUT_SIZE] [--output_size OUTPUT_SIZE] [--batch_size BATCH_SIZE]
-               [--source_dataset_dir SOURCE_DATASET_DIR] [--source_dataset {gazefollow,videoattentiontarget,goo}] [--target_dataset_dir TARGET_DATASET_DIR]
-               [--target_dataset {gazefollow,videoattentiontarget,goo}] [--num_workers NUM_WORKERS] [--init_weights INIT_WEIGHTS] [--eval_weights EVAL_WEIGHTS] [--lr LR]
-               [--epochs EPOCHS] [--evaluate_every EVALUATE_EVERY] [--save_every SAVE_EVERY] [--print_every PRINT_EVERY] [--no_resume] [--output_dir OUTPUT_DIR] [--amp AMP]
-               [--freeze_scene] [--freeze_face] [--freeze_depth] [--head_da] [--rgb_depth_da] [--task_loss_amp_factor TASK_LOSS_AMP_FACTOR]
-               [--rgb_depth_source_loss_amp_factor RGB_DEPTH_SOURCE_LOSS_AMP_FACTOR] [--rgb_depth_target_loss_amp_factor RGB_DEPTH_TARGET_LOSS_AMP_FACTOR]
-               [--adv_loss_amp_factor ADV_LOSS_AMP_FACTOR] [--no_wandb] [--no_save]
-
-optional arguments:
-  -h, --help            show this help message and exit
-  --tag TAG             Description of this run
-  --device {cpu,cuda,mps}
-  --input_size INPUT_SIZE
-                        input size
-  --output_size OUTPUT_SIZE
-                        output size
-  --batch_size BATCH_SIZE
-                        batch size
-  --source_dataset_dir SOURCE_DATASET_DIR
-                        directory where the source dataset is located
-  --source_dataset {gazefollow,videoattentiontarget,goo}
-  --target_dataset_dir TARGET_DATASET_DIR
-                        directory where the target dataset is located
-  --target_dataset {gazefollow,videoattentiontarget,goo}
-  --num_workers NUM_WORKERS
-  --init_weights INIT_WEIGHTS
-                        initial weights
-  --eval_weights EVAL_WEIGHTS
-                        If set, performs evaluation only
-  --lr LR               learning rate
-  --epochs EPOCHS       number of epochs
-  --evaluate_every EVALUATE_EVERY
-                        evaluate every N epochs
-  --save_every SAVE_EVERY
-                        save model every N epochs
-  --print_every PRINT_EVERY
-                        print training stats every N batches
-  --no_resume           Resume from a stopped run if exists
-  --output_dir OUTPUT_DIR
-                        Path to output folder
-  --amp AMP             AMP optimization level
-  --freeze_scene        Freeze the scene backbone
-  --freeze_face         Freeze the head backbone
-  --freeze_depth        Freeze the depth backbone
-  --head_da             Do DA on head backbone
-  --rgb_depth_da        Do DA on rgb/depth backbone
-  --task_loss_amp_factor TASK_LOSS_AMP_FACTOR
-  --rgb_depth_source_loss_amp_factor RGB_DEPTH_SOURCE_LOSS_AMP_FACTOR
-  --rgb_depth_target_loss_amp_factor RGB_DEPTH_TARGET_LOSS_AMP_FACTOR
-  --adv_loss_amp_factor ADV_LOSS_AMP_FACTOR
-  --no_wandb            Disables wandb
-  --no_save             Do not save checkpoint every {save_every}. Stores last checkpoint only to allow resuming
+**Example Usage**:
+```python
+predict_video(r"D:\Datasets\engagement_follow\Video\00000.avi", startbox=[267, 200, 314, 248], sampling_fps=2, annotated=True)
 ```
+In this example, the function will process the video located at `"D:\Datasets\engagement_follow\Video\00000.avi"`, extracting frames at an effective rate of 2 FPS, and using the given startbox for predictions. Since `annotated` is set to `True`, the function will use `predict_image_with_annotation` for processing frames.
 
-## Citation
-If you use our code, please cite:
-```bibtex
-@inproceedings{tonini2022multimodal,
-  author = {Tonini, Francesco and Beyan, Cigdem and Ricci, Elisa},
-  title = {Multimodal Across Domains Gaze Target Detection},
-  year = {2022},
-  isbn = {9781450393904},
-  publisher = {Association for Computing Machinery},
-  address = {New York, NY, USA},
-  url = {https://doi.org/10.1145/3536221.3556624%7D,
-  doi = {10.1145/3536221.3556624},
-  booktitle = {Proceedings of the 2022 International Conference on Multimodal Interaction},
-  pages = {420–431},
-  series = {ICMI '22}
-}
-```
+![](https://i.imgur.com/3pdnmLF.png)
+
+## API
