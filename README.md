@@ -16,7 +16,7 @@ nano .env
 Due to the complexity of the network use a recent NVidia GPU with at least 6GB of memory available and CUDA 11.3+ installed.
 Also, we suggest running everything on a Linux-based OS, preferably Ubuntu 20.04.
 
-### Demo
+### Demo (All in prediction.ipynb)
  
 1. Video properties such as frame count and FPS are extracted using OpenCV.
 2. Based on the original video's FPS and the desired `sampling_fps`, the function calculates the frequency at which frames should be extracted.
