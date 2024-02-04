@@ -335,3 +335,4 @@ $RECYCLE.BIN/
 output/
 pretrained/
 !/pretrained/.gitkeep
+multimodal-across-domains-gaze-target-detection.zip
