@@ -13,7 +13,6 @@ import os
 import sys
 #TODO: add the path to MiDaS if not running the script from within the folder
 sys.path.append(r'..')
-
 import glob
 import torch
 import utils
@@ -22,9 +21,32 @@ from tqdm import tqdm
 from torchvision.transforms import Compose
 from midas.dpt_depth import DPTDepthModel
 from midas.transforms import Resize, NormalizeImage, PrepareForNet
+from transformers import AutoImageProcessor, DPTForDepthEstimation
+import torch
+import numpy as np
+import matplotlib
+from torchvision import transforms
+from PIL import Image    
 
+def make_depth_transform() -> transforms.Compose:
+    return transforms.Compose([
+        transforms.ToTensor(),
+        lambda x: 255.0 * x[:3], # Discard alpha component and scale by 255
+        transforms.Normalize(
+            mean=(123.675, 116.28, 103.53),
+            std=(58.395, 57.12, 57.375),
+        ),
+    ])
 
-def extract_depth(input_path, output_path, model_path, model_type="large", optimize=True, img_list="ALL"):
+def render_depth(values, colormap_name="magma_r"):
+    min_value, max_value = values.min(), values.max()
+    normalized_values = (values - min_value) / (max_value - min_value)
+
+    colormap = matplotlib.colormaps[colormap_name]
+    colors = colormap(normalized_values, bytes=True) # ((1)xhxwx4)
+    colors = colors[:, :, :3] # Discard alpha component
+    return colors #Image.fromarray(colors)
+def extract_depth_dino(input_path, output_path, model_path, model_type="large", optimize=True, img_list="ALL"):
 
     torch.backends.cudnn.enabled = True
     torch.backends.cudnn.benchmark = True
@@ -43,44 +65,13 @@ def extract_depth(input_path, output_path, model_path, model_type="large", optim
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print("device: %s" % device)
 
-    # load network
-    if model_type == "dpt_large": # DPT-Large
-        model = DPTDepthModel(
-            path=model_path,
-            backbone="vitl16_384",
-            non_negative=True,
-        )
-        net_w, net_h = 384, 384
-        resize_mode = "minimal"
-        normalization = NormalizeImage(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])
-    else:
-        print(f"model_type '{model_type}' not implemented, use: --model_type large")
-        assert False
+    # load network 
+    image_processor = AutoImageProcessor.from_pretrained("facebook/dpt-dinov2-large-nyu")
+    model = DPTForDepthEstimation.from_pretrained("facebook/dpt-dinov2-large-nyu")
 
-    transform = Compose(
-        [
-            Resize(
-                net_w,
-                net_h,
-                resize_target=None,
-                keep_aspect_ratio=True,
-                ensure_multiple_of=32,
-                resize_method=resize_mode,
-                image_interpolation_method=cv2.INTER_CUBIC,
-            ),
-            normalization,
-            PrepareForNet(),
-        ]
-    )
 
-    model.eval()
-    
-    if optimize==True:
-        if device == torch.device("cuda"):
-            model = model.to(memory_format=torch.channels_last)  
-            model = model.half()
-
-    model.to(device)
+    # forward pass
+    transform = make_depth_transform()
 
     # create output folder
     os.makedirs(output_path, exist_ok=True)
@@ -98,28 +89,22 @@ def extract_depth(input_path, output_path, model_path, model_type="large", optim
     for ind, img_name in tqdm(enumerate(img_names)):
 
         # input
-        img = utils.read_image(img_name)
-        img_input = transform({"image": img})["image"]
-
+        img = Image.open(img_name)
+        
         # compute
+        # compute
+        rescaled_image = img.resize((img.width, img.height))
+        transformed_image = transform(rescaled_image)
+        inputs = image_processor(images=transformed_image, return_tensors="pt")
+        
+        # Prediction
         with torch.no_grad():
-            sample = torch.from_numpy(img_input).to(device).unsqueeze(0)
-            if optimize==True and device == torch.device("cuda"):
-                sample = sample.to(memory_format=torch.channels_last)
-                sample = sample.half()
-            prediction = model.forward(sample)
-            prediction = (
-                torch.nn.functional.interpolate(
-                    prediction.unsqueeze(1),
-                    size=img.shape[:2],
-                    mode="bicubic",
-                    align_corners=False,
-                )
-                .squeeze()
-                .cpu()
-                .numpy()
-            )
-
+            outputs = model(**inputs)
+            prediction = -outputs.predicted_depth.squeeze().cpu().numpy()
+        prediction=np.array(Image.fromarray(prediction_dino).resize((img.width, img.height)))
+        #display(depth_image)
+    
+        
         # create output sub-folder
         os.makedirs(output_path, exist_ok=True)
 
